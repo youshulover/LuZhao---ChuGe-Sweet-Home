@@ -12,18 +12,8 @@
 <body class="font-system">
 
 <div class="phone" id="app">
-    <!-- 状态栏 (透明) -->
-    <div id="statusBar">
-        <span class="time" id="statusTime">AM 10:30</span>
-        <div class="center-icons">
-            <span class="cam"></span>
-        </div>
-        <div class="right-icons">
-            <span class="wifi-icon">ᯤ⁵ᴳ</span>
-            <span class="signal-icon">🎧</span>
-            <span class="battery-icon">🐾₊⁺</span>⁸⁴
-        </div>
-    </div>
+    <!-- 顶部留白 -->
+    <div id="statusBar"></div>
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
@@ -289,7 +279,13 @@
 
             <!-- 中间：8个触碰按键 -->
             <div class="touch-grid-module">
-                <div class="module-title">🤲 触碰互动</div>
+                <div class="module-title">
+                    🤲 触碰互动
+                    <div class="touch-session-btns">
+                        <button class="session-btn start" id="touchSessionStart" title="开始互动">▶</button>
+                        <button class="session-btn end" id="touchSessionEnd" title="结束互动">◉</button>
+                    </div>
+                </div>
                 <div class="touch-grid">
                     <button class="touch-btn" data-touch="holdhand">
                         <span class="touch-icon">🤝</span>
@@ -415,11 +411,48 @@
                 <button class="menu-item" data-action="pin">📌 置顶聊天</button>
                 <button class="menu-item" data-action="mute">🔕 消息免打扰</button>
                 <button class="menu-item" data-action="cold">❄️ 许久未回复</button>
+                <button class="menu-item" data-action="moodpanel">📊 状态栏监控</button>
                 <div class="menu-divider"></div>
                 <button class="menu-item" data-action="voice">🎤 发语音</button>
                 <div class="menu-divider"></div>
                 <button class="menu-item" data-action="export">📤 导出聊天记录</button>
                 <button class="menu-item danger" data-action="delete">🚫 删除聊天</button>
+            </div>
+        </div>
+
+        <!-- 情绪状态悬浮窗（仅楚歌显示） -->
+        <div class="mood-status-panel" id="moodStatusPanel">
+            <div class="mood-avatar" id="moodAvatar">楚</div>
+            <div class="mood-stats">
+                <div class="mood-row">
+                    <div class="mood-stat">
+                        <span class="mood-label">情绪</span>
+                        <div class="mood-bar"><div class="mood-fill mood-mood" id="moodMoodFill" style="width:50%"></div></div>
+                    </div>
+                    <div class="mood-stat">
+                        <span class="mood-label">压力</span>
+                        <div class="mood-bar"><div class="mood-fill mood-stress" id="moodStressFill" style="width:50%"></div></div>
+                    </div>
+                </div>
+                <div class="mood-row">
+                    <div class="mood-stat">
+                        <span class="mood-label">体力</span>
+                        <div class="mood-bar"><div class="mood-fill mood-energy" id="moodEnergyFill" style="width:50%"></div></div>
+                    </div>
+                    <div class="mood-stat">
+                        <span class="mood-label">欲望</span>
+                        <div class="mood-bar"><div class="mood-fill mood-desire" id="moodDesireFill" style="width:50%"></div></div>
+                    </div>
+                </div>
+                <div class="mood-row single">
+                    <div class="mood-stat">
+                        <span class="mood-label">爱意</span>
+                        <div class="mood-bar"><div class="mood-fill mood-love" id="moodLoveFill" style="width:50%"></div></div>
+                    </div>
+                </div>
+                <div class="mood-want">
+                    <em id="moodWantText">想见你</em>
+                </div>
             </div>
         </div>
 

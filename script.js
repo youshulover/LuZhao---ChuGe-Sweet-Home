@@ -77,6 +77,14 @@
             const chatTitleMain = $('#chatTitleMain');
             const chatTitleSub = $('#chatTitleSub');
             const chatTitleWrapper = $('#chatTitleWrapper');
+            const moodStatusPanel = $('#moodStatusPanel');
+            const moodAvatar = $('#moodAvatar');
+            const moodMoodFill = $('#moodMoodFill');
+            const moodLoveFill = $('#moodLoveFill');
+            const moodStressFill = $('#moodStressFill');
+            const moodEnergyFill = $('#moodEnergyFill');
+            const moodDesireFill = $('#moodDesireFill');
+            const moodWantText = $('#moodWantText');
             const callBtn = $('#callBtn');
             const callOverlay = $('#callOverlay');
             const callAnswer = $('#callAnswer');
@@ -95,7 +103,6 @@
             const globalResetBtn = $('#globalResetBtn');
             const backupDataBtn = $('#backupDataBtn');
             const importDataBtn = $('#importDataBtn');
-            const statusTime = $('#statusTime');
             const toastEl = $('#toast');
             const msgContextMenu = $('#msgContextMenu');
             const msgMenuDelete = $('#msgMenuDelete');
@@ -185,6 +192,8 @@
             const tasteSlider = $('#tasteSlider');
             const tasteVal = $('#tasteVal');
             const touchLogArea = $('#touchLogArea');
+            const touchSessionStart = $('#touchSessionStart');
+            const touchSessionEnd = $('#touchSessionEnd');
             const claimBtn = $('#claimBtn');
             const returnBtn = $('#returnBtn');
             const homeWechatBtn = $('#homeWechatBtn');
@@ -761,13 +770,6 @@
                 timePicker.value = now.toISOString().slice(0, 16);
             }
 
-            function updateStatusTime() {
-                const now = new Date(Date.now() + timeOffset);
-                statusTime.textContent = formatStatusTime(now.toISOString());
-            }
-            setInterval(updateStatusTime, 1000);
-            updateStatusTime();
-
             // ============================================================
             //  主页更新
             // ============================================================
@@ -1188,8 +1190,11 @@
                 currentContactId = id;
                 if (id === 'chuge') {
                     callBtn.style.display = 'inline-block';
+                    // 情绪面板默认隐藏，由用户手动开关
                 } else {
                     callBtn.style.display = 'none';
+                    moodStatusPanel.classList.remove('show');
+                    chatArea.classList.remove('with-mood-panel');
                 }
                 exitSelectionMode();
                 updateChatHeader();
@@ -1344,7 +1349,11 @@
                     const msg = msgs[i];
                     const isMe = msg.sender === 'me';
                     const isBg = msg.type === 'background' || msg.type === 'location-reject';
-                    const rowClass = isBg ? 'background' : (isMe ? 'me' : 'other');
+                    const isTouchSealed = msg.type === 'touch-sealed';
+                    let rowClass;
+                    if (isTouchSealed) rowClass = 'touch-sealed';
+                    else if (isBg) rowClass = 'background';
+                    else rowClass = isMe ? 'me' : 'other';
                     const timeStr = formatChatTime(msg.timestamp);
                     let contentHtml = '',
                         bubbleClass = '';
@@ -1450,6 +1459,12 @@
                     } else if (msg.type === 'forward') {
                         bubbleClass = 'forward-quote';
                         contentHtml = msg.content;
+                    } else if (msg.type === 'touch-sealed') {
+                        contentHtml = `
+                            <div class="sealed-heart">♥</div>
+                            <div class="sealed-tape"></div>
+                            <div class="sealed-text">本次Touch记忆已封存</div>
+                        `;
                     } else {
                         contentHtml = msg.content || '消息';
                     }
@@ -1891,12 +1906,12 @@
                 const msgs = contextMsgs || getMessages(cid);
                 const history = msgs.slice(-50);
                 const messagesForAI = [{ role: 'system', content: cfg.systemPrompt }];
-                const bgMsgs = history.filter(m => m.type === 'background');
+                const bgMsgs = history.filter(m => m.type === 'background' || m.type === 'touch-sealed');
                 if (bgMsgs.length) {
                     messagesForAI.push({ role: 'system', content: `背景信息：${bgMsgs.map(m=>m.content).join('；')}` });
                 }
                 for (const m of history) {
-                    if (m.type !== 'background' && m.type !== 'forward' && m.type !== 'receipt') {
+                    if (m.type !== 'background' && m.type !== 'touch-sealed' && m.type !== 'forward' && m.type !== 'receipt') {
                         let content = m.content;
                         if (m.type === 'sticker') {
                             const isImage = content && (content.startsWith('data:image') || content.startsWith('http'));
@@ -1991,6 +2006,110 @@
                 } catch (e) {
                     console.error('状态AI失败', e);
                     return { mood: 50, love: 50, stress: 50, energy: 50, desire: 50, want: '想见你' };
+                }
+            }
+
+            // 情绪状态平滑控制
+            let currentMoodStatus = { mood: 50, love: 50, stress: 50, energy: 50, desire: 50, want: '想见你' };
+            let moodUpdateCounter = 0;
+            const MOOD_UPDATE_INTERVAL = 2; // 每2条消息更新一次
+            const MOOD_SMOOTH_FACTOR = 0.45; // 新值权重45%，旧值55%
+            let lastTouchInviteTime = 0;
+            const TOUCH_INVITE_COOLDOWN = 20 * 60 * 1000; // 邀请冷却20分钟
+
+            // 切换情绪面板显示
+            function toggleMoodPanel() {
+                const isShow = moodStatusPanel.classList.toggle('show');
+                chatArea.classList.toggle('with-mood-panel', isShow);
+                if (isShow) {
+                    updateMoodAvatar();
+                    refreshMoodStatus(true); // 手动打开强制刷新
+                }
+                showToast(isShow ? '📊 已显示状态栏' : '📊 已隐藏状态栏');
+            }
+
+            // 更新情绪面板头像
+            function updateMoodAvatar() {
+                const c = getContact('chuge');
+                moodAvatar.style.background = getAvatarColor('chuge');
+                if (c.avatarImage) {
+                    moodAvatar.innerHTML = `<img src="${c.avatarImage}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+                } else if (c.avatarEmoji) {
+                    moodAvatar.innerHTML = `<span style="font-size:20px;">${c.avatarEmoji}</span>`;
+                } else {
+                    moodAvatar.textContent = getFirstChar('chuge');
+                }
+            }
+
+            // 更新情绪悬浮面板
+            function updateMoodPanel(status) {
+                moodMoodFill.style.width = status.mood + '%';
+                moodLoveFill.style.width = status.love + '%';
+                moodStressFill.style.width = status.stress + '%';
+                moodEnergyFill.style.width = status.energy + '%';
+                moodDesireFill.style.width = status.desire + '%';
+                moodWantText.textContent = status.want;
+            }
+
+            // 刷新情绪状态（异步调用AI，带平滑过渡和频率控制）
+            async function refreshMoodStatus(force = false) {
+                if (currentContactId !== 'chuge') return;
+
+                // 频率控制：每MOOD_UPDATE_INTERVAL条消息才真正调用一次AI
+                moodUpdateCounter++;
+                if (!force && moodUpdateCounter < MOOD_UPDATE_INTERVAL) return;
+                moodUpdateCounter = 0;
+
+                try {
+                    const newStatus = await callAIForStatus();
+
+                    // 加权平滑：旧值65% + 新值35%
+                    const smoothed = {
+                        mood: Math.round(currentMoodStatus.mood * (1 - MOOD_SMOOTH_FACTOR) + newStatus.mood * MOOD_SMOOTH_FACTOR),
+                        love: Math.round(currentMoodStatus.love * (1 - MOOD_SMOOTH_FACTOR) + newStatus.love * MOOD_SMOOTH_FACTOR),
+                        stress: Math.round(currentMoodStatus.stress * (1 - MOOD_SMOOTH_FACTOR) + newStatus.stress * MOOD_SMOOTH_FACTOR),
+                        energy: Math.round(currentMoodStatus.energy * (1 - MOOD_SMOOTH_FACTOR) + newStatus.energy * MOOD_SMOOTH_FACTOR),
+                        desire: Math.round(currentMoodStatus.desire * (1 - MOOD_SMOOTH_FACTOR) + newStatus.desire * MOOD_SMOOTH_FACTOR),
+                        want: newStatus.want // 文字直接更新
+                    };
+
+                    currentMoodStatus = smoothed;
+                    updateMoodPanel(smoothed);
+
+                    // 检查是否触发Touch邀请
+                    maybeInviteTouch(smoothed);
+                } catch (e) {
+                    console.warn('刷新情绪失败', e);
+                }
+            }
+
+            // 检查是否发起Touch邀请（情绪阈值 + 冷却控制）
+            function maybeInviteTouch(status) {
+                const now = Date.now();
+                if (now - lastTouchInviteTime < TOUCH_INVITE_COOLDOWN) return;
+                if (touchInviteMode) return; // 已经在邀请中
+
+                // 阈值：情绪<40 或 压力<40 或 欲望>65（任一满足即触发）
+                if (status.mood < 40 || status.stress < 40 || status.desire > 65) {
+                    lastTouchInviteTime = now;
+                    touchInviteMode = true;
+
+                    // 延迟发邀请消息
+                    setTimeout(() => {
+                        const invites = [
+                            '...那个，你现在有空吗？',
+                            '唔...想摸摸你',
+                            '你过来一下嘛',
+                            '...有点想你了',
+                            '哼，本大爷允许你碰一下'
+                        ];
+                        const msg = invites[Math.floor(Math.random() * invites.length)];
+                        addMessage('chuge', 'other', 'text', msg);
+                        if (currentContactId === 'chuge') {
+                            renderMessages();
+                            chatArea.scrollTop = chatArea.scrollHeight;
+                        }
+                    }, 1200);
                 }
             }
 
@@ -2448,6 +2567,11 @@
                 if (isAIContact(currentContactId)) {
                     maybeSendRedpacketOrTransfer(currentContactId, text, reply);
                 }
+
+                // 更新情绪状态面板（仅楚歌）
+                if (currentContactId === 'chuge') {
+                    refreshMoodStatus();
+                }
             }
 
             // ============================================================
@@ -2501,6 +2625,71 @@
             let touchLogs = [];
             const TOUCH_LOGS_KEY = 'wechat_touch_logs';
             let touchCustomActions = {};
+            let touchInviteMode = false; // 是否为邀请模式（由AI发起的互动）
+            let touchSessionActive = false; // 互动会话是否进行中
+
+            // 开始Touch互动会话
+            function startTouchSession() {
+                touchSessionActive = true;
+                touchLogs = [];
+                saveTouchLogs();
+                renderTouchLogs();
+                touchSessionStart.classList.add('active');
+                touchSessionEnd.disabled = false;
+                touchSessionStart.disabled = true;
+                showToast('🎮 互动开始，尽情触碰吧');
+            }
+
+            // 结束Touch互动会话，回传日志
+            function endTouchSession() {
+                if (!touchSessionActive) return;
+                touchSessionActive = false;
+                touchSessionStart.classList.remove('active');
+                touchSessionEnd.disabled = true;
+                touchSessionStart.disabled = false;
+
+                // 整理日志文本
+                const logTexts = touchLogs.map(l => l.text).filter(t => !t.includes('似乎在反应'));
+                const logSummary = logTexts.length > 0 ? logTexts.join('；') : '没有太多互动';
+                const bgContent = `你们进行了一段Touch虚拟触碰互动，互动的记忆为：${logSummary}`;
+
+                // 如果是邀请模式，回到聊天页并插入封存消息
+                if (touchInviteMode) {
+                    touchInviteMode = false;
+                    switchPage('chat');
+
+                    // 插入封存记忆气泡（UI展示用）
+                    addMessage('chuge', 'other', 'touch-sealed', bgContent);
+
+                    // 延迟一下让AI回复
+                    setTimeout(() => {
+                        if (currentContactId === 'chuge') {
+                            renderMessages();
+                            chatArea.scrollTop = chatArea.scrollHeight;
+                        }
+                        // 触发AI回复
+                        triggerTouchReply(bgContent);
+                    }, 800);
+                }
+
+                showToast('💌 记忆已封存');
+            }
+
+            // 触发AI根据Touch记忆回复
+            async function triggerTouchReply(bgContent) {
+                try {
+                    const reply = await callAI('chuge', `（刚刚结束了一段Touch虚拟触碰互动，互动记忆：${bgContent}）现在说点什么回应我`);
+                    if (reply && typeof reply === 'string') {
+                        splitAndSend('chuge', 'other', 'text', reply, null, 600);
+                        // 更新情绪
+                        if (moodStatusPanel.classList.contains('show')) {
+                            refreshMoodStatus(true);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Touch回复失败', e);
+                }
+            }
 
             function loadTouchLogs() {
                 try {
@@ -3342,6 +3531,9 @@ ${privacyPrompt}
                         break;
                     case 'cold':
                         triggerColdWar();
+                        break;
+                    case 'moodpanel':
+                        toggleMoodPanel();
                         break;
                     case 'export':
                         exportChat();
@@ -4312,7 +4504,6 @@ ${privacyPrompt}
                 updateLyricsDisplay();
                 renderTouchLogs();
                 updateTimeDisplay();
-                updateStatusTime();
                 updateAnniversary();
 
                 showToast('🔄 已完全重置到初始状态');
@@ -4436,7 +4627,6 @@ ${privacyPrompt}
                             updateLyricsDisplay();
                             renderTouchLogs();
                             updateTimeDisplay();
-                            updateStatusTime();
                             updateAnniversary();
 
                             showToast('✅ 数据导入成功');
@@ -4458,7 +4648,6 @@ ${privacyPrompt}
                 timeOffset = t.getTime() - Date.now();
                 saveData();
                 updateTimeDisplay();
-                updateStatusTime();
                 updateAnniversary();
                 showToast('⏰ 时间已修改');
             }
@@ -4466,7 +4655,6 @@ ${privacyPrompt}
             function syncTime() { timeOffset = 0;
                 saveData();
                 updateTimeDisplay();
-                updateStatusTime();
                 updateAnniversary();
                 showToast('✅ 已同步系统时间'); }
 
@@ -4812,6 +5000,11 @@ ${privacyPrompt}
                     handleTouch(touchType);
                 });
             });
+
+            // Touch会话开始/结束按钮
+            touchSessionStart.addEventListener('click', startTouchSession);
+            touchSessionEnd.addEventListener('click', endTouchSession);
+            touchSessionEnd.disabled = true; // 默认禁用结束按钮
             
             document.querySelectorAll('.touch-btn').forEach(btn => {
                 let timer = null;
