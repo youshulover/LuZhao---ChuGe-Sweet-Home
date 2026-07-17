@@ -26,14 +26,27 @@
     ============================================================== -->
     <div class="page active" id="homePage">
         <div class="home-grid" id="homeGrid">
-            <!-- 时间卡片 -->
-            <div class="home-card home-card-time">
-                <div class="time-display" id="homeTimeDisplay">
-                    00:00:00 <span class="ampm">AM</span>
+            <!-- 个人名片卡片 -->
+            <div class="home-card home-card-profile">
+                <span class="deco deco-tl">❅</span>
+                <span class="deco deco-br">❆</span>
+                <!-- 背景大时间 -->
+                <div class="profile-bg-time" id="homeTimeDisplay">00:00</div>
+                <!-- 头像 -->
+                <div class="profile-avatar" id="profileAvatar">陆</div>
+                <!-- 信息行 -->
+                <div class="profile-info-row">
+                    <div class="profile-left">
+                        <div class="profile-name">陆昭</div>
+                        <div class="profile-id">@LuZhao_97</div>
+                    </div>
+                    <div class="profile-divider"></div>
+                    <div class="profile-sig">How Long Will I Love You ♥</div>
                 </div>
-                <div class="date-weather">
-                    <span class="weekday" id="homeWeekday">星期一</span>
-                    <span class="weather-wrap" id="weatherToggle" title="点击切换天气">
+                <!-- 底部信息 -->
+                <div class="profile-bottom">
+                    <span class="profile-weekday" id="homeWeekday">星期一</span>
+                    <span class="profile-weather" id="weatherToggle" title="点击切换天气">
                         <span class="weather-emoji" id="weatherEmoji">☀️</span>
                         <span class="weather-label" id="weatherLabel">晴</span>
                     </span>
@@ -53,26 +66,83 @@
                     <div class="lyrics-scroll" id="lyricsScroll"></div>
                 </div>
             </div>
-            <!-- 睡眠 -->
-            <div class="home-card home-card-sleep">
-                <div class="sleep-label">💤 睡眠</div>
-                <div class="sleep-value" id="sleepValue">
-                    <span class="num">7</span><span class="unit">小时</span><span class="num">32</span><span class="unit">分钟</span>
+            <!-- 应用文件夹 -->
+            <div class="home-card home-card-app-folder">
+                <div class="folder-app" data-app="worldbook">
+                    <div class="folder-app-icon" id="worldbookIcon">📚</div>
+                    <div class="folder-app-name">世界书</div>
+                </div>
+                <div class="folder-app" data-app="forum">
+                    <div class="folder-app-icon" id="forumIcon">💬</div>
+                    <div class="folder-app-name">论坛</div>
                 </div>
             </div>
-            <!-- 步数 -->
-            <div class="home-card home-card-steps">
-                <div class="steps-label">👣 步数</div>
-                <div class="steps-value" id="stepsValue">
-                    <span class="num">6,842</span> <span class="unit">步</span>
+            <!-- 纪念日 -->
+            <div class="home-card home-card-anniversary" id="anniversaryCard">
+                <span class="anniv-deco anniv-deco-tl">₊⁺</span>
+                <span class="anniv-deco anniv-deco-tr">♡</span>
+                <span class="anniv-deco anniv-deco-bl">𓏵</span>
+                <span class="anniv-deco anniv-deco-br">♫</span>
+                <div class="anniv-top">
+                    <span class="anniv-days">在一起已经 <strong id="annivDays">0</strong> 天</span>
+                    <span class="anniv-date">2025-06-18</span>
+                </div>
+                <div class="anniv-divider"></div>
+                <div class="anniv-bottom">
+                    <div class="anniv-birth">
+                        <div class="birth-label">他的生日</div>
+                        <div class="birth-date">1999-10-27</div>
+                    </div>
+                    <div class="anniv-birth">
+                        <div class="birth-label">我的生日</div>
+                        <div class="birth-date">1997-05-17</div>
+                    </div>
                 </div>
             </div>
-            <!-- 情绪占位 -->
-            <div class="home-card home-card-mood-placeholder">😊</div>
+            <!-- 便签 -->
+            <div class="home-card home-card-sticky-note">
+                <div class="sticky-tape"></div>
+                <div class="sticky-list" id="stickyTodoList"></div>
+            </div>
+            <!-- 健康圆环 -->
+            <div class="home-card home-card-health-ring">
+                <div class="ring-item ring-large">
+                    <div class="ring-wrap">
+                        <svg class="ring-svg" viewBox="0 0 36 36">
+                            <circle class="ring-bg" cx="18" cy="18" r="15.9"></circle>
+                            <circle class="ring-fill ring-sleep" cx="18" cy="18" r="15.9" id="ringSleep"></circle>
+                        </svg>
+                        <div class="ring-value" id="ringSleepVal">7.5h</div>
+                    </div>
+                    <div class="ring-label">睡眠</div>
+                </div>
+            </div>
             <!-- 状态监测 -->
             <div class="home-card home-card-status" id="statusCard">
-                <div class="status-label">📊 状态</div>
-                <div class="status-avatar" id="statusAvatar">楚</div>
+                <div class="status-left">
+                    <div class="status-avatar" id="statusAvatar">楚</div>
+                    <div class="status-follow-btn">✓ Follow</div>
+                </div>
+                <div class="status-bars">
+                    <div class="status-bar-row">
+                        <span class="status-bar-label">情绪</span>
+                        <div class="status-bar">
+                            <div class="status-bar-fill mood-fill" id="homeMoodBar" style="width:50%"></div>
+                        </div>
+                    </div>
+                    <div class="status-bar-row">
+                        <span class="status-bar-label">爱意</span>
+                        <div class="status-bar">
+                            <div class="status-bar-fill love-fill" id="homeLoveBar" style="width:50%"></div>
+                        </div>
+                    </div>
+                    <div class="status-bar-row">
+                        <span class="status-bar-label">体力</span>
+                        <div class="status-bar">
+                            <div class="status-bar-fill energy-fill" id="homeEnergyBar" style="width:50%"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- WeChat + 购物专家 -->
             <div class="home-card home-card-apps">
@@ -88,11 +158,6 @@
                     </div>
                     <span class="app-name">购物专家</span>
                 </div>
-            </div>
-            <!-- 个性签名 -->
-            <div class="home-card home-card-signature" id="signatureCard">
-                <span class="sig-text" id="homeSignature">今天也要好好生活</span>
-                <span class="sig-edit-icon"></span>
             </div>
             <!-- 底部dock -->
             <div class="home-card home-card-dock">

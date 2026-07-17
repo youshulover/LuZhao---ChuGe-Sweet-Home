@@ -1,4 +1,4 @@
-﻿        /**
+        /**
          * ============================================================
          *  📱 微信模拟器 - 完整代码 ()
          * ============================================================
@@ -214,8 +214,6 @@
             const lyricsEditTextarea = $('#lyricsEditTextarea');
             const lyricsEditCancel = $('#lyricsEditCancel');
             const lyricsEditSave = $('#lyricsEditSave');
-            const sleepValue = $('#sleepValue');
-            const stepsValue = $('#stepsValue');
             const homeSignature = $('#homeSignature');
             const signatureCard = $('#signatureCard');
             const dockSafari = $('#dockSafari');
@@ -241,6 +239,17 @@
             const wallpaperReset = $('#wallpaperReset');
             const statusCard = $('#statusCard');
             const statusAvatar = $('#statusAvatar');
+            const homeMoodBar = $('#homeMoodBar');
+            const homeLoveBar = $('#homeLoveBar');
+            const homeEnergyBar = $('#homeEnergyBar');
+            const annivDays = $('#annivDays');
+            const stickyTodoList = $('#stickyTodoList');
+            const ringStep = $('#ringStep');
+            const ringSleep = $('#ringSleep');
+            const ringSport = $('#ringSport');
+            const ringStepVal = $('#ringStepVal');
+            const ringSleepVal = $('#ringSleepVal');
+            const ringSportVal = $('#ringSportVal');
             const statusOverlay = $('#statusOverlay');
             const statusMoodVal = $('#statusMoodVal');
             const statusLoveVal = $('#statusLoveVal');
@@ -380,7 +389,7 @@
             let selectionMode = false;
             let selectedIndices = new Set();
 
-            let isPlaying = false;
+            let isPlaying = true;
             let currentWeatherIndex = 0;
             const weatherList = [
                 { emoji: '☀️', label: '晴' }, { emoji: '⛅', label: '多云' }, { emoji: '🌤️', label: '晴转多云' },
@@ -402,7 +411,9 @@
                 'safari': { emoji: '🧭', label: '浏览器' },
                 'album': { emoji: '🖼️', label: '相册' },
                 'diary': { emoji: '📖', label: '日记' },
-                'settings': { emoji: '⚙️', label: '设置' }
+                'settings': { emoji: '⚙️', label: '设置' },
+                'worldbook': { emoji: '📚', label: '世界书' },
+                'forum': { emoji: '💭', label: '论坛' }
             };
             let iconOverrides = {};
 
@@ -587,16 +598,6 @@
                 return '陆';
             }
 
-            function randomSleep() {
-                const h = Math.floor(5 + Math.random() * 4);
-                const m = Math.floor(Math.random() * 60);
-                return { h, m };
-            }
-
-            function randomSteps() {
-                return String(Math.floor(2000 + Math.random() * 13000)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            }
-
             function isAIContact(id) {
                 return ['chuge', 'chenche', 'shenqinghe'].includes(id);
             }
@@ -775,25 +776,15 @@
             // ============================================================
             function updateHomeClock() {
                 const now = new Date(Date.now() + timeOffset);
-                let h = now.getHours();
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                h = h % 12 || 12;
+                const h = String(now.getHours()).padStart(2, '0');
                 const m = String(now.getMinutes()).padStart(2, '0');
-                const s = String(now.getSeconds()).padStart(2, '0');
-                homeTimeDisplay.innerHTML = `${h}:${m}:${s} <span class="ampm">${ampm}</span>`;
+                homeTimeDisplay.textContent = `${h}:${m}`;
                 const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
                 homeWeekday.textContent = weekdays[now.getDay()];
             }
 
             function updateHomeSignature() {
-                homeSignature.textContent = homeSignatureText;
-            }
-
-            function updateHomeHealth() {
-                const sleep = randomSleep();
-                sleepValue.innerHTML =
-                    `<span class="num">${sleep.h}</span><span class="unit">小时</span><span class="num">${sleep.m}</span><span class="unit">分钟</span>`;
-                stepsValue.innerHTML = `<span class="num">${randomSteps()}</span> <span class="unit">步</span>`;
+                if (homeSignature) homeSignature.textContent = homeSignatureText;
             }
 
             function cycleWeather() {
@@ -940,6 +931,64 @@
             function updateAnniversary() {
                 const days = getAnniversaryDays();
                 diaryAnniversary.innerHTML = `💕 在一起已经 <strong>${days}</strong> 天`;
+                if (annivDays) annivDays.textContent = days;
+            }
+
+            // ============================================================
+            //  便签待办
+            // ============================================================
+            let stickyTodos = [
+                { id: 1, text: '明天下午医院复诊', done: false },
+                { id: 2, text: '楚歌心情不好 买小蛋糕', done: false },
+                { id: 3, text: '三点开高层会议', done: false }
+            ];
+
+            function loadStickyTodos() {
+                const saved = localStorage.getItem('wechat_sticky_todos');
+                if (saved) {
+                    try { stickyTodos = JSON.parse(saved); } catch (e) {}
+                }
+            }
+            function saveStickyTodos() {
+                localStorage.setItem('wechat_sticky_todos', JSON.stringify(stickyTodos));
+            }
+            function renderStickyTodos() {
+                if (!stickyTodoList) return;
+                stickyTodoList.innerHTML = stickyTodos.map(t => `
+                    <div class="sticky-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+                        <span class="sticky-checkbox">${t.done ? '☑' : '☐'}</span>
+                        <span class="sticky-text">${t.text}</span>
+                    </div>
+                `).join('');
+            }
+            function toggleStickyTodo(id) {
+                const t = stickyTodos.find(x => x.id == id);
+                if (t) {
+                    t.done = !t.done;
+                    saveStickyTodos();
+                    renderStickyTodos();
+                }
+            }
+            function editStickyTodo(id, newText) {
+                const t = stickyTodos.find(x => x.id == id);
+                if (t && newText.trim()) {
+                    t.text = newText.trim();
+                    saveStickyTodos();
+                }
+            }
+
+            // ============================================================
+            //  健康圆环
+            // ============================================================
+            let healthData = { sleep: 7.5 };
+
+            function randomHealthData() {
+                healthData.sleep = +(Math.random() * 3 + 5.5).toFixed(1); // 5.5-8.5h
+            }
+            function updateHealthRings() {
+                if (!ringSleep) return;
+                ringSleep.style.strokeDashoffset = 100 - (healthData.sleep / 10 * 100);
+                ringSleepVal.textContent = healthData.sleep + 'h';
             }
 
             // ============================================================
@@ -965,7 +1014,9 @@
                     'album': { el: $('#dockAlbum'), label: $('#dockAlbum').parentElement?.querySelector('.dock-name') },
                     'diary': { el: $('#dockDiary'), label: $('#dockDiary').parentElement?.querySelector('.dock-name') },
                     'settings': { el: $('#dockSettings'), label: $('#dockSettings').parentElement?.querySelector(
-                            '.dock-name') }
+                            '.dock-name') },
+                    'worldbook': { el: $('#worldbookIcon'), label: $('#worldbookIcon').parentElement?.querySelector('.folder-app-name') },
+                    'forum': { el: $('#forumIcon'), label: $('#forumIcon').parentElement?.querySelector('.folder-app-name') }
                 };
                 for (const [key, els] of Object.entries(map)) {
                     if (els.el) {
@@ -1262,7 +1313,6 @@
                 } else if (page === 'home') {
                     homePage.classList.add('active');
                     updateHomeClock();
-                    updateHomeHealth();
                     updateHomeSignature();
                     updateDialAvatar();
                     applyOpacity();
@@ -1317,9 +1367,15 @@
             //  个人资料
             // ============================================================
             function updateProfile() {
-                profileAvatar.innerHTML = getUserAvatarHTML();
-                profileAvatar.style.background = userAvatar.image ? 'transparent' : LUZHAO_COLOR;
-                profileSignature.textContent = signature;
+                const avatarHtml = getUserAvatarHTML();
+                const bgColor = userAvatar.image ? 'transparent' : LUZHAO_COLOR;
+                $$('.profile-avatar').forEach(el => {
+                    el.innerHTML = avatarHtml;
+                    el.style.background = bgColor;
+                });
+                $$('.profile-signature').forEach(el => {
+                    el.textContent = signature;
+                });
             }
 
             function editSignature() {
@@ -2100,6 +2156,10 @@
                 moodEnergyFill.style.width = status.energy + '%';
                 moodDesireFill.style.width = status.desire + '%';
                 moodWantText.textContent = status.want;
+                // 同步更新桌面状态条
+                if (homeMoodBar) homeMoodBar.style.width = status.mood + '%';
+                if (homeLoveBar) homeLoveBar.style.width = status.love + '%';
+                if (homeEnergyBar) homeEnergyBar.style.width = status.energy + '%';
             }
 
             // 刷新情绪状态（异步调用AI，带平滑过渡和频率控制）
@@ -3117,38 +3177,38 @@ ${privacyPrompt}
                 // 新用户初始化：完整的详细默认表情包
                 if (!customStickers.length) {
                     customStickers = [
-                        { id: 1001, category: 'dog', image: 'meme1.jpg', name: '小狗1', description: '小狗星星眼流泪', style: 'sad' },
-                        { id: 1002, category: 'dog', image: 'meme2.jpg', name: '小狗2', description: '小狗问号：“我？”', style: 'neutral' },
-                        { id: 1003, category: 'dog', image: 'meme3.jpg', name: '小狗3', description: '小狗飞吻', style: 'positive' },
-                        { id: 1004, category: 'dog', image: 'meme4.jpg', name: '小狗4', description: '小狗比心', style: 'positive' },
-                        { id: 1005, category: 'dog', image: 'meme5.jpg', name: '小狗5', description: '小狗可怜巴巴', style: 'sad' },
-                        { id: 1006, category: 'dog', image: 'meme6.jpg', name: '小狗6', description: '小狗送你花', style: 'shy' },
-                        { id: 1007, category: 'dog', image: 'meme7.jpg', name: '小狗7', description: '小狗说“好喜欢你”', style: 'shy' },
-                        { id: 1008, category: 'dog', image: 'meme8.jpg', name: '小狗8', description: '小狗送你心心', style: 'positive' },
-                        { id: 1009, category: 'dog', image: 'meme9.jpg', name: '小狗9', description: '小狗超级生气', style: 'negative' },
-                        { id: 1010, category: 'dog', image: 'meme10.jpg', name: '小狗10', description: '小狗打招呼', style: 'positive' },
-                        { id: 1011, category: 'dog', image: 'meme11.jpg', name: '小狗11', description: '小狗委屈', style: 'negative' },
-                        { id: 1012, category: 'dog', image: 'meme12.jpg', name: '小狗12', description: '小狗幸福到晕倒', style: 'shy' },
-                        { id: 1013, category: 'cat', image: 'meme13.jpg', name: '小猫1', description: '小猫看手机冒心心', style: 'positive' },
-                        { id: 1014, category: 'cat', image: 'meme14.jpg', name: '小猫2', description: '小猫星星眼期待看你', style: 'positive' },
-                        { id: 1015, category: 'cat', image: 'meme15.jpg', name: '小猫3', description: '小猫收红包', style: 'neutral' },
-                        { id: 1016, category: 'cat', image: 'meme16.jpg', name: '小猫4', description: '小熊伸手说“给我钱”', style: 'neutral' },
-                        { id: 1017, category: 'cat', image: 'meme17.jpg', name: '小猫5', description: '小猫委屈哭哭', style: 'positive' },
-                        { id: 1018, category: 'cat', image: 'meme18.jpg', name: '小猫6', description: '摸摸小猫', style: 'positive' },
-                        { id: 1019, category: 'cat', image: 'meme19.jpg', name: '小猫7', description: '小猫送你玫瑰花', style: 'shy' },
-                        { id: 1020, category: 'cat', image: 'meme20.jpg', name: '小猫8', description: '小猫拿刀', style: 'negative' },
-                        { id: 1021, category: 'cat', image: 'meme21.jpg', name: '小猫9', description: '小猫生气', style: 'negative' },
-                        { id: 1022, category: 'cat', image: 'meme22.jpg', name: '小猫10', description: '小猫认错', style: 'sad' },
-                        { id: 1023, category: 'cat', image: 'meme23.jpg', name: '小猫11', description: '小猫心虚冒冷汗', style: 'sad' },
-                        { id: 1024, category: 'cat', image: 'meme24.jpg', name: '小猫12', description: '小猫说“我恨！！”', style: 'negative' },
-                        { id: 1025, category: 'other', image: 'meme25.jpg', name: '其他1', description: '搞怪歪嘴笑', style: 'neutral' },
-                        { id: 1026, category: 'other', image: 'meme26.jpg', name: '其他2', description: '鼓掌叫好', style: 'positive' },
-                        { id: 1027, category: 'other', image: 'meme27.jpg', name: '其他3', description: '气到冒烟', style: 'negative' },
-                        { id: 1028, category: 'other', image: 'meme28.jpg', name: '其他4', description: '脸红低头害羞', style: 'shy' },
-                        { id: 1029, category: 'other', image: 'meme29.jpg', name: '其他5', description: '委屈抹眼泪', style: 'sad' },
-                        { id: 1030, category: 'other', image: 'meme30.jpg', name: '其他6', description: '竖起大拇指点赞', style: 'positive' },
-                        { id: 1031, category: 'other', image: 'meme31.jpg', name: '其他7', description: '满脸问号疑惑', style: 'neutral' },
-                        { id: 1032, category: 'other', image: 'meme32.jpg', name: '其他8', description: '挥手说晚安', style: 'positive' }
+                        { id: 1001, category: 'dog', image: 'sticker/meme1.jpg', name: '小狗1', description: '小狗星星眼流泪', style: 'sad' },
+                        { id: 1002, category: 'dog', image: 'sticker/meme2.jpg', name: '小狗2', description: '小狗问号：“我？”', style: 'neutral' },
+                        { id: 1003, category: 'dog', image: 'sticker/meme3.jpg', name: '小狗3', description: '小狗飞吻', style: 'positive' },
+                        { id: 1004, category: 'dog', image: 'sticker/meme4.jpg', name: '小狗4', description: '小狗比心', style: 'positive' },
+                        { id: 1005, category: 'dog', image: 'sticker/meme5.jpg', name: '小狗5', description: '小狗可怜巴巴', style: 'sad' },
+                        { id: 1006, category: 'dog', image: 'sticker/meme6.jpg', name: '小狗6', description: '小狗送你花', style: 'shy' },
+                        { id: 1007, category: 'dog', image: 'sticker/meme7.jpg', name: '小狗7', description: '小狗说“好喜欢你”', style: 'shy' },
+                        { id: 1008, category: 'dog', image: 'sticker/meme8.jpg', name: '小狗8', description: '小狗送你心心', style: 'positive' },
+                        { id: 1009, category: 'dog', image: 'sticker/meme9.jpg', name: '小狗9', description: '小狗超级生气', style: 'negative' },
+                        { id: 1010, category: 'dog', image: 'sticker/meme10.jpg', name: '小狗10', description: '小狗打招呼', style: 'positive' },
+                        { id: 1011, category: 'dog', image: 'sticker/meme11.jpg', name: '小狗11', description: '小狗委屈', style: 'negative' },
+                        { id: 1012, category: 'dog', image: 'sticker/meme12.jpg', name: '小狗12', description: '小狗幸福到晕倒', style: 'shy' },
+                        { id: 1013, category: 'cat', image: 'sticker/meme13.jpg', name: '小猫1', description: '小猫看手机冒心心', style: 'positive' },
+                        { id: 1014, category: 'cat', image: 'sticker/meme14.jpg', name: '小猫2', description: '小猫星星眼期待看你', style: 'positive' },
+                        { id: 1015, category: 'cat', image: 'sticker/meme15.jpg', name: '小猫3', description: '小猫收红包', style: 'neutral' },
+                        { id: 1016, category: 'cat', image: 'sticker/meme16.jpg', name: '小猫4', description: '小熊伸手说“给我钱”', style: 'neutral' },
+                        { id: 1017, category: 'cat', image: 'sticker/meme17.jpg', name: '小猫5', description: '小猫委屈哭哭', style: 'positive' },
+                        { id: 1018, category: 'cat', image: 'sticker/meme18.jpg', name: '小猫6', description: '摸摸小猫', style: 'positive' },
+                        { id: 1019, category: 'cat', image: 'sticker/meme19.jpg', name: '小猫7', description: '小猫送你玫瑰花', style: 'shy' },
+                        { id: 1020, category: 'cat', image: 'sticker/meme20.jpg', name: '小猫8', description: '小猫拿刀', style: 'negative' },
+                        { id: 1021, category: 'cat', image: 'sticker/meme21.jpg', name: '小猫9', description: '小猫生气', style: 'negative' },
+                        { id: 1022, category: 'cat', image: 'sticker/meme22.jpg', name: '小猫10', description: '小猫认错', style: 'sad' },
+                        { id: 1023, category: 'cat', image: 'sticker/meme23.jpg', name: '小猫11', description: '小猫心虚冒冷汗', style: 'sad' },
+                        { id: 1024, category: 'cat', image: 'sticker/meme24.jpg', name: '小猫12', description: '小猫说“我恨！！”', style: 'negative' },
+                        { id: 1025, category: 'other', image: 'sticker/meme25.jpg', name: '其他1', description: '搞怪歪嘴笑', style: 'neutral' },
+                        { id: 1026, category: 'other', image: 'sticker/meme26.jpg', name: '其他2', description: '鼓掌叫好', style: 'positive' },
+                        { id: 1027, category: 'other', image: 'sticker/meme27.jpg', name: '其他3', description: '气到冒烟', style: 'negative' },
+                        { id: 1028, category: 'other', image: 'sticker/meme28.jpg', name: '其他4', description: '脸红低头害羞', style: 'shy' },
+                        { id: 1029, category: 'other', image: 'sticker/meme29.jpg', name: '其他5', description: '委屈抹眼泪', style: 'sad' },
+                        { id: 1030, category: 'other', image: 'sticker/meme30.jpg', name: '其他6', description: '竖起大拇指点赞', style: 'positive' },
+                        { id: 1031, category: 'other', image: 'sticker/meme31.jpg', name: '其他7', description: '满脸问号疑惑', style: 'neutral' },
+                        { id: 1032, category: 'other', image: 'sticker/meme32.jpg', name: '其他8', description: '挥手说晚安', style: 'positive' }
                     ];
                 }
 
@@ -3166,15 +3226,15 @@ ${privacyPrompt}
                         if (id <= 1012) {
                             category = 'dog';
                             name = `小狗${id - 1000}`;
-                            image = `meme${id - 1000}.jpg`;
+                            image = `sticker/meme${id - 1000}.jpg`;
                         } else if (id <= 1024) {
                             category = 'cat';
                             name = `小猫${id - 1012}`;
-                            image = `meme${id - 1000}.jpg`;
+                            image = `sticker/meme${id - 1000}.jpg`;
                         } else {
                             category = 'other';
                             name = `其他${id - 1024}`;
-                            image = `meme${id - 1000}.jpg`;
+                            image = `sticker/meme${id - 1000}.jpg`;
                         }
                         customStickers.push({
                             id,
@@ -4786,11 +4846,6 @@ ${privacyPrompt}
                     updateHomeClock();
                 }
             }, 1000);
-            setInterval(() => {
-                if (homePage.classList.contains('active')) {
-                    updateHomeHealth();
-                }
-            }, 1800000);
 
             weatherToggle.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -4999,16 +5054,57 @@ ${privacyPrompt}
                 if (e.target === this) statusOverlay.classList.remove('open');
             });
 
+            // ---- 便签待办 ----
+            if (stickyTodoList) {
+                stickyTodoList.addEventListener('click', function(e) {
+                    const item = e.target.closest('.sticky-item');
+                    if (!item) return;
+                    const id = item.dataset.id;
+                    if (e.target.classList.contains('sticky-text') && !e.target.isContentEditable) {
+                        return;
+                    }
+                    toggleStickyTodo(id);
+                });
+                stickyTodoList.addEventListener('dblclick', function(e) {
+                    const textEl = e.target.closest('.sticky-text');
+                    if (!textEl) return;
+                    const item = textEl.closest('.sticky-item');
+                    const id = item.dataset.id;
+                    textEl.contentEditable = 'true';
+                    textEl.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(textEl);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+
+                    const finishEdit = () => {
+                        textEl.contentEditable = 'false';
+                        editStickyTodo(id, textEl.textContent);
+                        renderStickyTodos();
+                    };
+                    textEl.addEventListener('blur', finishEdit, { once: true });
+                    textEl.addEventListener('keydown', function(ev) {
+                        if (ev.key === 'Enter') {
+                            ev.preventDefault();
+                            textEl.blur();
+                        }
+                    });
+                });
+            }
+
             // ---- 其他主页 ----
-            signatureCard.addEventListener('click', function() {
-                const val = prompt('编辑个性签名：', homeSignatureText);
-                if (val !== null && val.trim() !== '') {
-                    homeSignatureText = val.trim();
-                    saveData();
-                    updateHomeSignature();
-                    showToast('✍️ 签名已更新');
-                }
-            });
+            if (signatureCard) {
+                signatureCard.addEventListener('click', function() {
+                    const val = prompt('编辑个性签名：', homeSignatureText);
+                    if (val !== null && val.trim() !== '') {
+                        homeSignatureText = val.trim();
+                        saveData();
+                        updateHomeSignature();
+                        showToast('✍️ 签名已更新');
+                    }
+                });
+            }
 
             homeWechatBtn.addEventListener('click', function() {
                 switchPage('list');
@@ -6016,23 +6112,25 @@ ${privacyPrompt}
             //  本地图像加载模块
             // ============================================================
             const LOCAL_IMAGE_MAP = {
-                user: 'luzhao.jpg',
+                user: 'avatar/luzhao.jpg',
                 contacts: {
-                    'chuge': 'chuge.jpg',
-                    'chenche': 'chenche.jpg',
-                    'shenqinghe': 'shenqinghe.jpg'
+                    'chuge': 'avatar/chuge.jpg',
+                    'chenche': 'avatar/chenche.jpg',
+                    'shenqinghe': 'avatar/shenqinghe.jpg'
                 },
                 icons: {
-                    'wechat': 'wechat.jpg',
-                    'shopping': 'shopping.jpg',
-                    'safari': 'safari.jpg',
-                    'album': 'album.jpg',
-                    'diary': 'diary.jpg',
-                    'settings': 'settings.jpg'
+                    'wechat': 'icon/wechat.jpg',
+                    'shopping': 'icon/shopping.jpg',
+                    'safari': 'icon/safari.jpg',
+                    'album': 'icon/album.jpg',
+                    'diary': 'icon/diary.jpg',
+                    'settings': 'icon/settings.jpg',
+                    'worldbook': 'icon/worldbook.jpg',
+                    'forum': 'icon/forum.jpg'
                 },
-                wallpaper: 'wallpaper.jpg',
-                momentsCover: 'moments.jpg',
-                chatBg: 'wechatbackground.jpg'
+                wallpaper: 'bg/wallpaper.jpg',
+                momentsCover: 'bg/moments.jpg',
+                chatBg: 'bg/wechatbackground.jpg'
             };
 
             function tryLoadLocalImage(filename, onSuccess, onError) {
@@ -6153,13 +6251,21 @@ ${privacyPrompt}
             weatherEmoji.textContent = w.emoji;
             weatherLabel.textContent = w.label;
             updateHomeClock();
-            updateHomeHealth();
             updateHomeSignature();
             updateDialAvatar();
             applyOpacity();
             applyBlur();
             updateDiaryAvatars();
             updateAnniversary();
+            loadStickyTodos();
+            renderStickyTodos();
+            randomHealthData();
+            updateHealthRings();
+            // 健康数据每20分钟刷新
+            setInterval(function() {
+                randomHealthData();
+                updateHealthRings();
+            }, 20 * 60 * 1000);
             initWaveform();
             renderLyrics();
             updateLyricsDisplay();
