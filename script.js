@@ -1350,8 +1350,10 @@
                     const isMe = msg.sender === 'me';
                     const isBg = msg.type === 'background' || msg.type === 'location-reject';
                     const isTouchSealed = msg.type === 'touch-sealed';
+                    const isTouchInvite = msg.type === 'touch-invite';
                     let rowClass;
                     if (isTouchSealed) rowClass = 'touch-sealed';
+                    else if (isTouchInvite) rowClass = 'touch-invite';
                     else if (isBg) rowClass = 'background';
                     else rowClass = isMe ? 'me' : 'other';
                     const timeStr = formatChatTime(msg.timestamp);
@@ -1464,6 +1466,36 @@
                             <div class="sealed-heart">♥</div>
                             <div class="sealed-tape"></div>
                             <div class="sealed-text">本次Touch记忆已封存</div>
+                        `;
+                    } else if (msg.type === 'touch-invite') {
+                        const inviteId = msg.id || '';
+                        const accepted = msg.extra && msg.extra.accepted;
+                        const rejected = msg.extra && msg.extra.rejected;
+                        let btnHtml = '';
+                        if (!accepted && !rejected) {
+                            btnHtml = `
+                                <div class="invite-btns">
+                                    <button class="invite-btn accept" data-touch-invite-accept="${inviteId}">接受</button>
+                                    <button class="invite-btn reject" data-touch-invite-reject="${inviteId}">拒绝</button>
+                                </div>
+                            `;
+                        } else {
+                            btnHtml = `<div class="invite-text" style="color:#aaa;font-size:11px;">${accepted ? '已接受' : '已拒绝'}</div>`;
+                        }
+                        contentHtml = `
+                            <div class="invite-titlebar">
+                                <span>💌 Touch邀请</span>
+                                <div class="win-btns">
+                                    <span class="win-btn"></span>
+                                    <span class="win-btn"></span>
+                                    <span class="win-btn"></span>
+                                </div>
+                            </div>
+                            <div class="invite-body">
+                                <div class="invite-icon">✧</div>
+                                <div class="invite-text">${msg.content || '楚歌想和你进行一段虚拟触碰互动'}</div>
+                                ${btnHtml}
+                            </div>
                         `;
                     } else {
                         contentHtml = msg.content || '消息';
@@ -1849,14 +1881,9 @@
                 showToast('🔄 AI正在重新生成...');
                 try {
                     msgs.splice(idx, 1);
-                    let userMsg = '嗯';
-                    for (let i = idx - 1; i >= 0; i--) {
-                        if (msgs[i].sender === 'me' && msgs[i].type === 'text') {
-                            userMsg = msgs[i].content;
-                            break;
-                        }
-                    }
-                    const reply = await callAI(cid, userMsg, msgs);
+                    // 取最近10条历史作为上下文，按正常聊天方式触发
+                    const contextMsgs = msgs.slice(-10);
+                    const reply = await callAI(cid, '请结合当前聊天语境回复一句', contextMsgs);
                     if (!reply) {
                         showToast('❌ 生成失败，请重试');
                         saveData();
@@ -1865,16 +1892,32 @@
                     }
                     const voiceKeywords = ['语音', '发语音', '说话', '和我说'];
                     const shouldVoice = voiceKeywords.some(kw => reply.includes(kw));
-                    const newMsg = {
-                        sender: 'other',
-                        type: shouldVoice ? 'voice' : 'text',
-                        content: reply,
-                        timestamp: new Date(Date.now() + timeOffset).toISOString(),
-                        extra: shouldVoice ? { duration: Math.max(2, Math.min(32, Math.floor(reply.length / 5) + 2)) } : null
-                    };
-                    msgs.splice(idx, 0, newMsg);
-                    saveData();
-                    if (currentContactId === cid) renderMessages();
+                    if (shouldVoice) {
+                        const newMsg = {
+                            sender: 'other',
+                            type: 'voice',
+                            content: reply,
+                            timestamp: new Date(Date.now() + timeOffset).toISOString(),
+                            extra: { duration: Math.max(2, Math.min(32, Math.floor(reply.length / 5) + 2)) }
+                        };
+                        msgs.splice(idx, 0, newMsg);
+                        saveData();
+                        if (currentContactId === cid) renderMessages();
+                    } else {
+                        // 支持[SEP]分条发送，插入原位置
+                        const parts = reply.split(/\[SEP\]|\n\n+/).filter(s => s.trim());
+                        parts.forEach((part, i) => {
+                            const newMsg = {
+                                sender: 'other',
+                                type: 'text',
+                                content: part.trim(),
+                                timestamp: new Date(Date.now() + timeOffset + i * 2000).toISOString()
+                            };
+                            msgs.splice(idx + i, 0, newMsg);
+                        });
+                        saveData();
+                        if (currentContactId === cid) renderMessages();
+                    }
                     renderContactList();
                     showToast('✅ 已重新生成');
                 } catch (e) {
@@ -1906,12 +1949,20 @@
                 const msgs = contextMsgs || getMessages(cid);
                 const history = msgs.slice(-50);
                 const messagesForAI = [{ role: 'system', content: cfg.systemPrompt }];
-                const bgMsgs = history.filter(m => m.type === 'background' || m.type === 'touch-sealed');
+                const bgMsgs = history.filter(m => m.type === 'background' || m.type === 'touch-sealed' || m.type === 'touch-invite');
                 if (bgMsgs.length) {
-                    messagesForAI.push({ role: 'system', content: `背景信息：${bgMsgs.map(m=>m.content).join('；')}` });
+                    const bgTexts = bgMsgs.map(m => {
+                        if (m.type === 'touch-invite') {
+                            const status = (m.extra && m.extra.accepted) ? '已接受' :
+                                          (m.extra && m.extra.rejected) ? '已拒绝' : '等待接收';
+                            return `楚歌 发出了Touch邀请（${status}）：${m.content || ''}`;
+                        }
+                        return m.content;
+                    });
+                    messagesForAI.push({ role: 'system', content: `背景信息：${bgTexts.join('；')}` });
                 }
                 for (const m of history) {
-                    if (m.type !== 'background' && m.type !== 'touch-sealed' && m.type !== 'forward' && m.type !== 'receipt') {
+                    if (m.type !== 'background' && m.type !== 'touch-sealed' && m.type !== 'touch-invite' && m.type !== 'forward' && m.type !== 'receipt') {
                         let content = m.content;
                         if (m.type === 'sticker') {
                             const isImage = content && (content.startsWith('data:image') || content.startsWith('http'));
@@ -2015,7 +2066,7 @@
             const MOOD_UPDATE_INTERVAL = 2; // 每2条消息更新一次
             const MOOD_SMOOTH_FACTOR = 0.45; // 新值权重45%，旧值55%
             let lastTouchInviteTime = 0;
-            const TOUCH_INVITE_COOLDOWN = 20 * 60 * 1000; // 邀请冷却20分钟
+            const TOUCH_INVITE_COOLDOWN = 10 * 60 * 1000; // 邀请冷却10分钟
 
             // 切换情绪面板显示
             function toggleMoodPanel() {
@@ -2089,28 +2140,88 @@
                 if (now - lastTouchInviteTime < TOUCH_INVITE_COOLDOWN) return;
                 if (touchInviteMode) return; // 已经在邀请中
 
-                // 阈值：情绪<40 或 压力<40 或 欲望>65（任一满足即触发）
-                if (status.mood < 40 || status.stress < 40 || status.desire > 65) {
+                // 阈值：情绪<40 或 压力<40 或 欲望>75（任一满足即触发）
+                if (status.mood < 40 || status.stress < 40 || status.desire > 75) {
                     lastTouchInviteTime = now;
                     touchInviteMode = true;
 
-                    // 延迟发邀请消息
+                    // 延迟发邀请气泡
                     setTimeout(() => {
-                        const invites = [
-                            '...那个，你现在有空吗？',
-                            '唔...想摸摸你',
-                            '你过来一下嘛',
-                            '...有点想你了',
-                            '哼，本大爷允许你碰一下'
+                        const inviteTexts = [
+                            '……你现在有空吗',
+                            '抱我一下可以吗',
+                            '……有点想你',
+                            '老子允许你碰一下 就一下啊'
                         ];
-                        const msg = invites[Math.floor(Math.random() * invites.length)];
-                        addMessage('chuge', 'other', 'text', msg);
+                        const text = inviteTexts[Math.floor(Math.random() * inviteTexts.length)];
+                        addMessage('chuge', 'other', 'touch-invite', text);
                         if (currentContactId === 'chuge') {
                             renderMessages();
                             chatArea.scrollTop = chatArea.scrollHeight;
                         }
                     }, 1200);
                 }
+            }
+
+            // 处理Touch邀请回复
+            function handleTouchInviteResponse(msgId, action) {
+                const msgs = getMessages('chuge');
+                // 找最新的一条未处理的邀请消息
+                const targetMsg = [...msgs].reverse().find(m =>
+                    m.type === 'touch-invite' &&
+                    !(m.extra && (m.extra.accepted || m.extra.rejected))
+                );
+                if (!targetMsg) return;
+
+                if (action === 'accept') {
+                    targetMsg.extra = targetMsg.extra || {};
+                    targetMsg.extra.accepted = true;
+                    // 插入背景记录
+                    addMessage('chuge', 'me', 'background', '我 接受了 楚歌 的Touch邀请');
+                    touchInviteMode = true;
+                    saveData();
+                    renderMessages();
+                    // 跳转到Touch面板
+                    setTimeout(() => switchPage('touch'), 300);
+                } else {
+                    targetMsg.extra = targetMsg.extra || {};
+                    targetMsg.extra.rejected = true;
+                    // 插入背景记录
+                    addMessage('chuge', 'me', 'background', '我 拒绝了 楚歌 的Touch邀请');
+                    touchInviteMode = false;
+                    saveData();
+                    renderMessages();
+                    // AI结合上下文生成拒绝后的回复
+                    setTimeout(async () => {
+                        try {
+                            const msgs = getMessages('chuge');
+                            const recentMsgs = msgs.slice(-6); // 取最近5条+邀请本身
+                            const reply = await callAI('chuge', '你给我发送了一条Touch邀请，请求与我产生接触互动，但是我拒绝了你的Touch邀请，结合现在的语境说点什么，不要太长。', recentMsgs);
+                            if (reply && typeof reply === 'string') {
+                                splitAndSend('chuge', 'other', 'text', reply, null, 600);
+                            }
+                        } catch (e) {
+                            // 失败兜底
+                            const fallback = ['……哦', '随便你 你大爷的', '去你大爷的你当我稀罕你碰我是吧！'];
+                            addMessage('chuge', 'other', 'text', fallback[Math.floor(Math.random() * fallback.length)]);
+                            renderMessages();
+                            chatArea.scrollTop = chatArea.scrollHeight;
+                        }
+                    }, 600);
+                }
+            }
+
+            // 显示封存日志详情
+            function showSealedLog(bubbleEl) {
+                const row = bubbleEl.closest('.message-row');
+                const idx = row ? row.dataset.msgIndex : null;
+                if (idx === null || idx === undefined) return;
+
+                const msgs = getMessages('chuge');
+                const msg = msgs[parseInt(idx)];
+                if (!msg) return;
+
+                alert('📝 Touch记忆详情\n\n' + msg.content);
             }
 
             // ============================================================
@@ -3580,6 +3691,8 @@ ${privacyPrompt}
                     let text = msg.type === 'text' ? msg.content :
                         msg.type === 'system' ? '[系统消息]' :
                         msg.type === 'background' ? '[背景] ' + msg.content :
+                        msg.type === 'touch-invite' ? '[背景] 楚歌 发出了Touch邀请 等待接收…：' + msg.content :
+                        msg.type === 'touch-sealed' ? '[背景] ' + msg.content :
                         msg.type === 'redpacket' ? '[红包] ' + msg.content :
                         msg.type === 'transfer' ? '[转账] ' + msg.content :
                         msg.type === 'location' ? '[位置] ' + msg.content :
@@ -5848,6 +5961,24 @@ ${privacyPrompt}
             });
             forwardOverlay.addEventListener('click', function(e) {
                 if (e.target === this) forwardOverlay.classList.remove('open');
+            });
+
+            // Touch邀请接受/拒绝按钮
+            chatArea.addEventListener('click', function(e) {
+                const acceptBtn = e.target.closest('[data-touch-invite-accept]');
+                const rejectBtn = e.target.closest('[data-touch-invite-reject]');
+                const sealedBubble = e.target.closest('.message-row.touch-sealed .bubble');
+
+                if (acceptBtn) {
+                    const msgId = acceptBtn.dataset.touchInviteAccept;
+                    handleTouchInviteResponse(msgId, 'accept');
+                } else if (rejectBtn) {
+                    const msgId = rejectBtn.dataset.touchInviteReject;
+                    handleTouchInviteResponse(msgId, 'reject');
+                } else if (sealedBubble) {
+                    // 点击封存气泡查看日志
+                    showSealedLog(sealedBubble);
+                }
             });
 
             chatArea.addEventListener('click', function(e) {
