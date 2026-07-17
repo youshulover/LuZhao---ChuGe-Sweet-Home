@@ -67,8 +67,13 @@
             right: 0;
             z-index: 20;
             background: transparent;
-            height: 8px;
+            height: 5px;
             pointer-events: none;
+        }
+
+        :root {
+            --page-header-padding: 12px 16px 10px;
+            --page-header-min-height: 52px;
         }
 
         /* ===== 页面容器 ===== */
@@ -91,13 +96,13 @@
         /* ===== 统一标题栏样式 ===== */
         .unified-header {
             background: #ededed;
-            padding: 36px 16px 12px;
+            padding: var(--page-header-padding);
             border-bottom: 1px solid #d9d9d9;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
-            min-height: 56px;
+            min-height: var(--page-header-min-height);
             position: relative;
         }
         .unified-header .back-btn {
@@ -147,13 +152,13 @@
         /* ===== 聊天列表页 ===== */
         #listPage .list-header {
             background: #ededed;
-            padding: 36px 16px 12px;
+            padding: var(--page-header-padding);
             border-bottom: 1px solid #d9d9d9;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
-            min-height: 56px;
+            min-height: var(--page-header-min-height);
             position: relative;
         }
         #listPage .list-header .back-btn {
@@ -285,13 +290,13 @@
         /* ===== 聊天详情页 ===== */
         .chat-header {
             background: #ededed;
-            padding: 36px 16px 12px;
+            padding: var(--page-header-padding);
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid #d9d9d9;
             flex-shrink: 0;
-            min-height: 56px;
+            min-height: var(--page-header-min-height);
             position: relative;
         }
         .chat-header .back-btn {
@@ -1534,13 +1539,13 @@
         }
         .moments-header {
             background: #ededed;
-            padding: 36px 16px 12px;
+            padding: var(--page-header-padding);
             border-bottom: 1px solid #d9d9d9;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
-            min-height: 56px;
+            min-height: var(--page-header-min-height);
             position: relative;
         }
         .moments-header .back-btn {
@@ -1769,6 +1774,126 @@
             color: #e74c3c;
         }
 
+        /* ===== 监控页面 ===== */
+        .monitor-page {
+            background: #ededed;
+            display: flex;
+            flex-direction: column;
+        }
+        .monitor-page .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 12px 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .monitor-page .chat-area::-webkit-scrollbar {
+            display: none;
+        }
+        .monitor-page .chat-tip {
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            padding: 20px 0;
+        }
+        .monitor-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 12px;
+            background: #f7f7f7;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: center;
+        }
+        .monitor-refresh-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: #07c160;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .monitor-refresh-btn:active {
+            opacity: 0.8;
+        }
+        .monitor-refresh-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .refresh-icon {
+            font-size: 14px;
+        }
+        .monitor-page .message-row.monitor-row {
+            display: flex;
+            align-items: flex-start;
+            max-width: min(72%, 280px);
+            width: fit-content;
+            margin-bottom: 6px;
+        }
+        .monitor-page .message-row.monitor-row.me {
+            align-self: flex-end;
+            justify-content: flex-end;
+        }
+        .monitor-page .message-row.monitor-row.other {
+            align-self: flex-start;
+            justify-content: flex-start;
+        }
+        .monitor-page .monitor-header-note {
+            text-align: center;
+            font-size: 11px;
+            color: #8a8a8a;
+            margin: 2px 0 8px;
+        }
+        .monitor-page .monitor-bubble-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 100%;
+        }
+        .monitor-page .monitor-row .bubble {
+            max-width: 100%;
+            padding: 8px 10px;
+            font-size: 13px;
+            line-height: 1.45;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            white-space: pre-wrap;
+        }
+        .monitor-page .monitor-row.me .bubble {
+            background: rgba(193, 209, 229, var(--bubble-opacity, 1));
+            border-bottom-right-radius: 0;
+        }
+        .monitor-page .monitor-row.other .bubble {
+            background: rgba(255, 255, 255, var(--bubble-opacity, 1));
+            border-bottom-left-radius: 0;
+        }
+        .monitor-page .monitor-row .monitor-meta {
+            display: flex;
+            justify-content: flex-end;
+            min-height: 10px;
+            padding: 0 2px;
+        }
+        .monitor-page .monitor-row.other .monitor-meta {
+            justify-content: flex-start;
+        }
+        .monitor-page .monitor-read {
+            font-size: 10px;
+            color: #9aa0a6;
+            letter-spacing: 0.5px;
+        }
+
         /* ===== 表情包库页 ===== */
         .sticker-library-page {
             background: #f7f7f7 !important;
@@ -1923,13 +2048,13 @@
         }
         .settings-header {
             background: #ededed;
-            padding: 36px 16px 12px;
+            padding: var(--page-header-padding);
             border-bottom: 1px solid #d9d9d9;
             display: flex;
             align-items: center;
             gap: 12px;
             flex-shrink: 0;
-            min-height: 56px;
+            min-height: var(--page-header-min-height);
             position: relative;
         }
         .settings-header .back-btn {
@@ -2546,8 +2671,8 @@
             font-size: 13px;
             font-weight: 500;
             opacity: 1;
-            color: #2c2c2c;
-            transform: scale(1.05);
+            color: #4b5563;
+            transform: scale(1.03);
         }
         .lyrics-edit-overlay {
             position: absolute;
@@ -2652,17 +2777,24 @@
         .home-card-app-folder .folder-app:active {
             transform: scale(0.92);
         }
+        .home-card-app-folder .folder-app:active .folder-app-icon {
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
         .home-card-app-folder .folder-app-icon {
             width: 52px;
             height: 52px;
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.58);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.78);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.45);
             overflow: hidden;
+            position: relative;
+            z-index: 0;
         }
         .home-card-app-folder .folder-app-icon img {
             width: 100%;
@@ -2888,13 +3020,13 @@
             transition: width 0.5s ease;
         }
         .home-card-status .mood-fill {
-            background: linear-gradient(90deg, #f8b4d9, #f472b6);
+            background: linear-gradient(90deg, #b8cfc7, #7d9c91);
         }
         .home-card-status .love-fill {
-            background: linear-gradient(90deg, #a5b4fc, #818cf8);
+            background: linear-gradient(90deg, #bcd3df, #7a9fb3);
         }
         .home-card-status .energy-fill {
-            background: linear-gradient(90deg, #86efac, #4ade80);
+            background: linear-gradient(90deg, #c8d8c2, #8aa38b);
         }
 
         /* 纪念日模块 */
@@ -3238,13 +3370,13 @@
         }
         .safari-header {
             background: #ededed;
-            padding: 36px 16px 12px;
+            padding: var(--page-header-padding);
             border-bottom: 1px solid #d9d9d9;
             display: flex;
             align-items: center;
             gap: 8px;
             flex-shrink: 0;
-            min-height: 56px;
+            min-height: var(--page-header-min-height);
             position: relative;
         }
         .safari-header .back-btn {
@@ -4621,13 +4753,13 @@
         }
         .touch-header {
             background: #ededed;
-            padding: 36px 16px 10px;
+            padding: var(--page-header-padding);
             border-bottom: 1px solid #d9d9d9;
             display: flex;
             align-items: center;
             gap: 12px;
             flex-shrink: 0;
-            min-height: 52px;
+            min-height: var(--page-header-min-height);
         }
         .touch-header .back-btn {
             font-size: 22px;
@@ -4897,13 +5029,13 @@
         }
         .shopping-header {
             background: #ededed;
-            padding: 36px 16px 10px;
+            padding: var(--page-header-padding);
             border-bottom: 1px solid #d9d9d9;
             display: flex;
             align-items: center;
             gap: 8px;
             flex-shrink: 0;
-            min-height: 52px;
+            min-height: var(--page-header-min-height);
         }
         .shopping-header .back-btn {
             font-size: 22px;

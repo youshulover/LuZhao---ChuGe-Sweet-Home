@@ -1,4 +1,4 @@
-        /**
+﻿        /**
          * ============================================================
          *  📱 微信模拟器 - 完整代码 ()
          * ============================================================
@@ -250,6 +250,11 @@
             const ringStepVal = $('#ringStepVal');
             const ringSleepVal = $('#ringSleepVal');
             const ringSportVal = $('#ringSportVal');
+            const monitorPage = $('#monitorPage');
+            const monitorBack = $('#monitorBack');
+            const monitorChatArea = $('#monitorChatArea');
+            const monitorRefreshBtn = $('#monitorRefreshBtn');
+            const bookmarkMonitor = $('#bookmarkMonitor');
             const statusOverlay = $('#statusOverlay');
             const statusMoodVal = $('#statusMoodVal');
             const statusLoveVal = $('#statusLoveVal');
@@ -401,10 +406,10 @@
             let wallpaperData = null;
             let momentsCoverData = null;
             let chatBgData = null;
-            let bubbleOpacity = 1;
-            let bubbleFontSize = 14;
-            let moduleOpacity = 0.15;
-            let moduleBlur = 2;
+            let bubbleOpacity = 0.65;
+            let bubbleFontSize = 12;
+            let moduleOpacity = 0.2;
+            let moduleBlur = 1;
             const iconDefaults = {
                 'wechat': { emoji: '💬', label: '𝙒𝙚𝘾𝙝𝙖𝙩' },
                 'shopping': { emoji: '🛒', label: '购物专家' },
@@ -446,7 +451,8 @@
             const API_CONFIG_KEY = 'wechat_api_config';
             let apiConfig = {
                 apiUrl: 'https://api.deepseek.com/chat/completions',
-                apiKey: '【我的api】'
+                apiKey: '【我的api】',
+                model: 'deepseek-chat'
             };
 
             function loadApiConfig() {
@@ -456,7 +462,18 @@
                         const parsed = JSON.parse(saved);
                         if (parsed.apiUrl) apiConfig.apiUrl = parsed.apiUrl;
                         if (parsed.apiKey) apiConfig.apiKey = parsed.apiKey;
+                        if (parsed.model) apiConfig.model = parsed.model;
                     }
+
+                    // 兼容旧版单独保存的字段
+                    const legacyUrl = localStorage.getItem('wechat_apiUrl');
+                    if (legacyUrl) apiConfig.apiUrl = legacyUrl;
+
+                    const legacyKey = localStorage.getItem('wechat_apiKey');
+                    if (legacyKey) apiConfig.apiKey = legacyKey;
+
+                    const legacyModel = localStorage.getItem('wechat_model');
+                    if (legacyModel) apiConfig.model = legacyModel;
                 } catch(e) {}
             }
 
@@ -713,10 +730,10 @@
                     if (wp) wallpaperData = wp;
                     if (mc) momentsCoverData = mc;
                     if (cb) chatBgData = cb;
-                    if (bo) bubbleOpacity = parseFloat(bo) || 1;
-                    if (bfs) bubbleFontSize = parseInt(bfs) || 14;
-                    if (op) moduleOpacity = parseFloat(op) || 0.15;
-                    if (bl) moduleBlur = parseInt(bl) || 2;
+                    if (bo) bubbleOpacity = parseFloat(bo) || 0.65;
+                    if (bfs) bubbleFontSize = parseInt(bfs) || 12;
+                    if (op) moduleOpacity = parseFloat(op) || 0.2;
+                    if (bl) moduleBlur = parseInt(bl) || 1;
                     if (cartData) cart = JSON.parse(cartData);
                     if (hideData) hideAmount = JSON.parse(hideData);
                     if (lyricsDataStr) {
@@ -989,6 +1006,199 @@
                 if (!ringSleep) return;
                 ringSleep.style.strokeDashoffset = 100 - (healthData.sleep / 10 * 100);
                 ringSleepVal.textContent = healthData.sleep + 'h';
+            }
+
+            // ============================================================
+            //  监控视角 - AI对话生成
+            // ============================================================
+            function getRecentChatSummary(cid, count) {
+                const c = getContact(cid);
+                if (!c) return '';
+                const msgs = c.messages || [];
+                const recent = msgs.slice(-count);
+                return recent.map(m => {
+                    const who = m.sender === 'me' ? '陆昭' : (c.name || cid);
+                    if (m.type === 'text') return `${who}：${m.content}`;
+                    if (m.type === 'redpacket') return `[${who}发了红包：${m.amount}元，留言：${m.message || ''}]`;
+                    if (m.type === 'transfer') return `[${who}发起转账：${m.amount}元，备注：${m.message || ''}]`;
+                    if (m.type === 'sticker') return `[${who}发表情包]`;
+                    if (m.type === 'location') return `[${who}分享了位置]`;
+                    return '';
+                }).filter(x => x).join('\n');
+            }
+
+            const MONITOR_CHAT_KEY = 'wechat_monitor_chat';
+
+            function saveMonitorChat(rawText) {
+                try {
+                    localStorage.setItem(MONITOR_CHAT_KEY, rawText || '');
+                } catch (e) {}
+            }
+
+            function loadMonitorChat() {
+                try {
+                    return localStorage.getItem(MONITOR_CHAT_KEY) || '';
+                } catch (e) {
+                    return '';
+                }
+            }
+
+            async function generateMonitorChat() {
+                if (!monitorRefreshBtn) return;
+                monitorRefreshBtn.disabled = true;
+                monitorRefreshBtn.innerHTML = '<span class="refresh-icon">⏳</span><span>生成中...</span>';
+
+                try {
+                    const chugeSummary = getRecentChatSummary('chuge', 20);
+                    const chencheSummary = getRecentChatSummary('chenche', 20);
+
+                    const prompt = `你需要模拟楚歌和陈澈两个人的微信对话。
+
+【楚歌人设】
+${contacts.chuge ? contacts.chuge.systemPrompt || '别扭、口是心非，和陆昭是情侣关系，身体不好，依赖陆昭' : ''}
+
+【陈澈人设】
+${contacts.chenche ? contacts.chenche.systemPrompt || '楚歌的好朋友，双性偏男性，性格爽朗、柔媚开放，喜欢用颜文字' : ''}
+
+【背景参考 - 楚歌最近和陆昭的聊天（最近20条）】
+${chugeSummary || '（暂无记录）'}
+
+【背景参考 - 陈澈最近和陆昭的聊天（最近20条）】
+${chencheSummary || '（暂无记录）'}
+
+【重要规则】
+1. 两人都不知道陆昭能看到这段对话，所以聊天内容会更私密、更真实，更加贴近各自的人设。楚歌说脏话的频率增加，对陆昭的称呼可以更亲密、更随意，从“狗日的”到名字“陆昭”，到“我老公”等都有可能出现，可以自由发散发挥，偶尔会向陈澈炫耀陆昭对他的好（注意！只有当聊天记录里确实存在这样的记录才会炫耀提及，比如发了大额红包、送了礼物等，绝对禁止在聊天记录不存在这些内容的情况下凭空捏造）。
+2. 开启话题时，严禁直接说"陆昭刚才跟我说了xxx"这种好像知道对方聊天内容的话（如果是陈澈开启话题，那么就不会直接提及陈澈和陆昭的聊天内容；如果是楚歌开启话题，同理），因为他们互相看不到对方和陆昭的聊天。但如果是很关心的事，可以试探性打探。
+3. 不需要完全围绕上面的聊天记录展开，可以自由发散，聊日常、聊心情、聊八卦都可以。
+4. 同一个人可以连续发多条短消息，形成消息的连发效果，更加随意，增加活人感。
+5. 用空格代替其他标点符号，可以在对话中加入一些emoji、颜文字、网络流行语等，增加聊天的趣味性和真实性。
+
+【输出要求】
+- 一共生成8-10条对话消息
+- 每条单独一行，格式：楚歌：内容  或  陈澈：内容
+- 同一人可以连续发多条消息，形成连发效果，分行或用[SEP]分割
+- 语气自然、随意，符合各自人设
+- 不要加任何额外说明、解释、标题，只输出对话内容本身`;
+
+                    const res = await callAIRaw(prompt, '你是一个专业的对话模拟者，严格按照要求输出对话内容，不要添加多余文字。');
+                    saveMonitorChat(res);
+                    renderMonitorChat(res);
+                } catch (e) {
+                    console.error('生成监控对话失败', e);
+                    if (monitorChatArea) {
+                        monitorChatArea.innerHTML = '<div class="chat-tip">⚠️ 生成失败，请稍后重试</div>';
+                    }
+                } finally {
+                    if (monitorRefreshBtn) {
+                        monitorRefreshBtn.disabled = false;
+                        monitorRefreshBtn.innerHTML = '<span class="refresh-icon">🔄</span><span>刷新记录</span>';
+                    }
+                }
+            }
+
+            function renderMonitorChat(rawText) {
+                if (!monitorChatArea || !rawText) return;
+                const rawItems = (rawText || '')
+                    .replace(/\r\n/g, '\n')
+                    .replace(/\r/g, '\n')
+                    .split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l);
+
+                const parts = [];
+                rawItems.forEach(item => {
+                    const segments = item.split('[SEP]').map(s => s.trim()).filter(s => s);
+                    if (segments.length) {
+                        segments.forEach(seg => parts.push(seg));
+                    }
+                });
+
+                const grouped = [];
+                let currentGroup = null;
+
+                for (const line of parts) {
+                    let sender = null;
+                    let content = line;
+
+                    if (line.startsWith('楚歌：') || line.startsWith('楚歌:')) {
+                        sender = 'chuge';
+                        content = line.substring(3).trim();
+                    } else if (line.startsWith('陈澈：') || line.startsWith('陈澈:')) {
+                        sender = 'chenche';
+                        content = line.substring(3).trim();
+                    } else if (currentGroup) {
+                        sender = currentGroup.sender;
+                    }
+
+                    if (!sender || !content) continue;
+
+                    if (!currentGroup || currentGroup.sender !== sender) {
+                        currentGroup = { sender, messages: [] };
+                        grouped.push(currentGroup);
+                    }
+                    currentGroup.messages.push({ content });
+                }
+
+                let html = '';
+                html += '<div class="monitor-header-note">👁 您正在查看 楚歌 与 陈澈 的聊天记录</div>';
+
+                grouped.forEach(group => {
+                    const isRight = group.sender === 'chuge';
+                    const rowClass = isRight ? 'me' : 'other';
+
+                    group.messages.forEach((msg, index) => {
+                        const showRead = isRight && index === group.messages.length - 1;
+                        const metaHtml = showRead ? '<div class="monitor-meta"><span class="monitor-read">✓✓</span></div>' : '';
+
+                        html += `
+                            <div class="message-row monitor-row ${rowClass}" data-contact="${group.sender}">
+                                <div class="monitor-bubble-wrap">
+                                    <div class="bubble">${msg.content}</div>
+                                    ${metaHtml}
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+
+                if (!html) {
+                    html = '<div class="chat-tip">暂无对话记录</div>';
+                }
+                monitorChatArea.innerHTML = html;
+                monitorChatArea.scrollTop = monitorChatArea.scrollHeight;
+            }
+
+            function callAIRaw(prompt, systemPrompt) {
+                return new Promise((resolve, reject) => {
+                    const apiUrl = apiConfig?.apiUrl || 'https://api.deepseek.com/chat/completions';
+                    const apiKey = (apiConfig?.apiKey && apiConfig.apiKey.trim() !== '' && apiConfig.apiKey !== '【我的api】')
+                        ? apiConfig.apiKey
+                        : '';
+                    const model = apiConfig?.model || 'deepseek-chat';
+
+                    fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [
+                                { role: 'system', content: systemPrompt || '你是一个助手。' },
+                                { role: 'user', content: prompt }
+                            ],
+                            temperature: 0.8,
+                            max_tokens: 1500
+                        })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        const text = data.choices?.[0]?.message?.content || '';
+                        resolve(text.trim());
+                    })
+                    .catch(reject);
+                });
             }
 
             // ============================================================
@@ -1280,7 +1490,7 @@
             //  页面切换
             // ============================================================
             function switchPage(page) {
-                [listPage, chatPage, momentsPage, settingsPage, homePage, safariPage, diaryPage, shoppingPage, touchPage, stickerLibraryPage].forEach(p =>
+                [listPage, chatPage, momentsPage, settingsPage, homePage, safariPage, diaryPage, shoppingPage, touchPage, stickerLibraryPage, monitorPage].forEach(p =>
                     p.classList.remove('active'));
                 if (page === 'list') { listPage.classList.add('active');
                     renderContactList(); } else if (page === 'chat') { chatPage.classList.add('active');
@@ -1310,6 +1520,8 @@
                 } else if (page === 'stickerLibrary') {
                     stickerLibraryPage.classList.add('active');
                     renderStickerLibrary();
+                } else if (page === 'monitor') {
+                    monitorPage.classList.add('active');
                 } else if (page === 'home') {
                     homePage.classList.add('active');
                     updateHomeClock();
@@ -4610,8 +4822,8 @@ ${privacyPrompt}
                 homeSignatureText = '今天也要好好生活';
                 iconOverrides = {};
                 wallpaperData = null;
-                moduleOpacity = 0.15;
-                moduleBlur = 2;
+                moduleOpacity = 0.2;
+                moduleBlur = 1;
                 cart = {};
                 hideAmount = false;
                 lyricsData = ["我爱你", "无畏人海的拥挤", "用尽余生的勇气", "只为能靠近你", "哪怕一厘米", "爱上你", "是我落下的险棋", "不惧岁月的更替", "往后的朝夕", "不论风雨", "是你就足矣"];
@@ -4956,6 +5168,16 @@ ${privacyPrompt}
                 }, 2500);
             }
 
+            function ensureLyricsAutoPlay() {
+                if (!isPlaying) {
+                    isPlaying = true;
+                    playOverlay.classList.add('playing');
+                    playOverlay.textContent = '⏸';
+                    musicStatusText.textContent = '播放中';
+                }
+                startLyricsScroll();
+            }
+
             function stopLyricsScroll() {
                 if (lyricsInterval) {
                     clearInterval(lyricsInterval);
@@ -5183,6 +5405,16 @@ ${privacyPrompt}
             bookmarkTouch.addEventListener('click', function() {
                 switchPage('touch');
                 updateSenseSliders();
+            });
+
+            bookmarkMonitor.addEventListener('click', function() {
+                switchPage('monitor');
+            });
+            monitorBack.addEventListener('click', function() {
+                switchPage('safari');
+            });
+            monitorRefreshBtn.addEventListener('click', function() {
+                generateMonitorChat();
             });
             
             touchBack.addEventListener('click', function() {
@@ -6239,6 +6471,10 @@ ${privacyPrompt}
 
             const savedPage = 'home';
             const savedContact = sessionStorage.getItem('wechat_current_contact') || 'chuge';
+            const savedMonitorChat = loadMonitorChat();
+            if (savedMonitorChat) {
+                renderMonitorChat(savedMonitorChat);
+            }
             if (savedPage === 'chat' && savedContact) {
                 currentContactId = savedContact;
                 openChat(savedContact);
@@ -6269,6 +6505,7 @@ ${privacyPrompt}
             initWaveform();
             renderLyrics();
             updateLyricsDisplay();
+            ensureLyricsAutoPlay();
             renderTouchLogs();
             loadPrivacyMode();
             updatePrivacyIcon();

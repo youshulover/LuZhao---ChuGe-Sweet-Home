@@ -219,6 +219,10 @@
                     <div>Touch 虚拟触碰面板 - 与您的爱人亲密互动</div>
                     <div class="url">touch://virtual</div>
                 </div>
+                <div class="bookmark-item" id="bookmarkMonitor">
+                    <div>隐私监控视角 - 手机桌面同步</div>
+                    <div class="url">monitor://secret</div>
+                </div>
             </div>
             <div>
                 <div class="section-title">🕐 历史记录</div>
@@ -722,6 +726,26 @@
         <div class="moments-input">
             <input id="momentInput" placeholder="写日记..." />
             <button id="momentSend">发布</button>
+        </div>
+    </div>
+
+    <!-- ===== 监控页面 ===== -->
+    <div class="page monitor-page" id="monitorPage">
+        <div class="chat-header">
+            <button class="back-btn" id="monitorBack">‹</button>
+            <div class="chat-title">
+                <div class="chat-name">隐私监控视角 · 手机桌面同步</div>
+            </div>
+            <div class="chat-more">⋯</div>
+        </div>
+        <div class="chat-area monitor-chat-area" id="monitorChatArea">
+            <div class="chat-tip">点击下方「刷新记录」查看最新对话</div>
+        </div>
+        <div class="monitor-bottom">
+            <button class="monitor-refresh-btn" id="monitorRefreshBtn">
+                <span class="refresh-icon">🔄</span>
+                <span>刷新记录</span>
+            </button>
         </div>
     </div>
 
