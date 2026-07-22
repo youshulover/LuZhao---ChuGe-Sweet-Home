@@ -399,6 +399,19 @@
                 </div>
             </div>
         </div>
+        <!-- 自定义动作编辑弹窗 -->
+        <div class="touch-custom-overlay" id="touchCustomOverlay">
+            <div class="touch-custom-modal">
+                <div class="custom-modal-title">自定义动作描述</div>
+                <div class="custom-modal-subtitle" id="customModalSubtitle">为「牵手」输入描述</div>
+                <textarea class="custom-modal-input" id="customModalInput" placeholder="描述这个触碰动作的具体内容..."></textarea>
+                <div class="custom-modal-hint">留空可恢复默认描述</div>
+                <div class="custom-modal-btns">
+                    <button class="custom-btn cancel" id="customModalCancel">取消</button>
+                    <button class="custom-btn confirm" id="customModalConfirm">确定</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ==============================================================
@@ -749,7 +762,112 @@
         </div>
     </div>
 
-    <!-- ===== 表情包库页 ===== -->
+    <!-- ===== 论坛页面 ===== -->
+    <div class="page forum-page" id="forumPage">
+        <!-- 列表视图 -->
+        <div class="forum-list-view" id="forumListView">
+            <div class="forum-header">
+                <button class="back-btn" id="forumBack">‹</button>
+                <div class="forum-title">✨ 浮生论坛</div>
+                <button class="forum-post-btn" id="forumPostBtn">✎ 发帖</button>
+            </div>
+            <div class="board-tabs">
+                <div class="board-tab active" data-board="gossip">
+                    <span class="tab-icon">🍵</span>
+                    <span>八卦茶坊</span>
+                </div>
+                <div class="board-tab" data-board="fanfic">
+                    <span class="tab-icon">📖</span>
+                    <span>同人创作</span>
+                </div>
+                <div class="board-tab" data-board="live">
+                    <span class="tab-icon">🔴</span>
+                    <span>私密直播</span>
+                </div>
+            </div>
+            <div class="forum-list" id="forumList"></div>
+            <!-- 直播窗口（私密直播板块） -->
+            <div class="live-view" id="liveView" style="display:none;">
+                <div class="live-container">
+                    <div class="live-video">
+                        <div class="live-top-bar">
+                            <div class="live-live-tag">
+                                <span class="live-dot"></span>
+                                <span>直播中</span>
+                            </div>
+                            <div class="live-host-info">
+                                <div class="live-host-avatar">楚</div>
+                                <div class="live-host-name">匿名主播</div>
+                                <div class="live-viewers">👁 234 人观看</div>
+                            </div>
+                        </div>
+                        <div class="live-cover-text">深夜电台 · 陪你聊天</div>
+                    </div>
+                    <div class="live-danmaku-layer" id="liveDanmakuLayer"></div>
+                </div>
+                <div class="live-controls">
+                    <button class="live-gift-btn" id="liveGiftBtn">🎁 送礼</button>
+                    <input type="text" class="live-danmaku-input" id="liveDanmakuInput" placeholder="发条弹幕..." />
+                    <button class="live-send-btn" id="liveSendBtn">发送</button>
+                </div>
+                <div class="live-comments" id="liveComments">
+                    <div class="live-comment-system">欢迎来到直播间～</div>
+                </div>
+            </div>
+        </div>
+        <!-- 详情视图 -->
+        <div class="forum-detail-view" id="forumDetailView" style="display:none;">
+            <div class="forum-header">
+                <button class="back-btn" id="forumDetailBack">‹</button>
+                <div class="forum-title">帖子详情</div>
+                <button class="forum-share-btn" id="forumShareBtn" title="转发">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="detail-scroll-container">
+                <div class="post-detail" id="postDetail">
+                    <div class="post-detail-title" id="detailTitle"></div>
+                    <div class="post-detail-meta">
+                        <span class="detail-author" id="detailAuthor"></span>
+                        <span class="detail-time" id="detailTime"></span>
+                    </div>
+                    <div class="post-detail-content" id="detailContent"></div>
+                    <div class="post-detail-stats">
+                        <span id="detailViews">0 浏览</span>
+                        <span id="detailLikes">❤ 0</span>
+                    </div>
+                </div>
+                <div class="reply-section">
+                    <div class="reply-count" id="replyCount">全部回复 0</div>
+                    <div class="reply-list" id="replyList"></div>
+                </div>
+            </div>
+            <div class="reply-input-bar">
+                <div class="reply-user-tag" id="replyUserTag" title="点击修改昵称">陆昭</div>
+                <input type="text" class="reply-input" id="replyInput" placeholder="说点什么..." />
+                <button class="reply-send-btn" id="replySendBtn">发送</button>
+            </div>
+        </div>
+        <!-- 转发弹窗 -->
+        <div class="forum-share-overlay" id="forumShareOverlay" style="display:none;">
+            <div class="forum-share-modal">
+                <div class="share-modal-title">转发给</div>
+                <div class="share-contact-list" id="shareContactList"></div>
+                <div class="share-extra-input">
+                    <input type="text" id="shareExtraText" placeholder="说点什么..." maxlength="100" />
+                </div>
+                <div class="share-modal-btns">
+                    <button class="share-btn cancel" id="shareCancelBtn">取消</button>
+                    <button class="share-btn confirm" id="shareConfirmBtn">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="page sticker-library-page" id="stickerLibraryPage">
         <div class="settings-header">
             <button class="back-btn" id="stickerLibBack">‹</button>
